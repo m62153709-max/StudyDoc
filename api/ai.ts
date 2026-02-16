@@ -5,8 +5,8 @@
 
 const AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
 
-// Keep your provider/model choice on the server so you can swap later.
-const DEFAULT_CHAT_MODEL = "openai/gpt-4o-mini"; // change if desired, e.g. "openai/gpt-4.1"
+// Keep provider/model choice on the server so you can swap later.
+const DEFAULT_CHAT_MODEL = "openai/gpt-4o-mini"; // e.g. "openai/gpt-4.1"
 const DEFAULT_EMBED_MODEL = "openai/text-embedding-3-small";
 
 /**
@@ -59,16 +59,53 @@ async function gatewayFetch(path: string, payload: any) {
     body: JSON.stringify(payload),
   });
 
-  const txt = await r.text();
+  const raw = await r.text();
   if (!r.ok) {
-    throw new Error(`AI Gateway error ${r.status} ${r.statusText}: ${txt}`);
+    throw new Error(`AI Gateway error ${r.status} ${r.statusText}: ${raw}`);
   }
-  return txt ? JSON.parse(txt) : {};
+
+  return raw ? JSON.parse(raw) : {};
 }
 
 function clampText(s: string, maxChars: number) {
   if (!s) return "";
   return s.length > maxChars ? s.slice(0, maxChars) : s;
+}
+
+/**
+ * Many models *usually* return JSON when instructed, but sometimes prepend/append
+ * whitespace or stray characters. This helper tries a strict parse first, then
+ * falls back to extracting the first {...} or [...] block.
+ */
+function safeJsonParse(maybeJson: string) {
+  const s = String(maybeJson ?? "").trim();
+  if (!s) throw new Error("Empty AI response");
+
+  // 1) Strict parse
+  try {
+    return JSON.parse(s);
+  } catch {}
+
+  // 2) Try to extract a JSON object/array substring
+  const firstObj = s.indexOf("{");
+  const lastObj = s.lastIndexOf("}");
+  if (firstObj !== -1 && lastObj !== -1 && lastObj > firstObj) {
+    const sub = s.slice(firstObj, lastObj + 1);
+    try {
+      return JSON.parse(sub);
+    } catch {}
+  }
+
+  const firstArr = s.indexOf("[");
+  const lastArr = s.lastIndexOf("]");
+  if (firstArr !== -1 && lastArr !== -1 && lastArr > firstArr) {
+    const sub = s.slice(firstArr, lastArr + 1);
+    try {
+      return JSON.parse(sub);
+    } catch {}
+  }
+
+  throw new Error("AI returned non-JSON output (failed to parse).");
 }
 
 // Prompts kept server-side so you can iterate without shipping them to clients.
@@ -179,6 +216,8 @@ Return ONLY valid JSON in this exact TypeScript type:
     "detail": string
   }[]
 }
+
+Return ONLY JSON, no markdown/backticks/commentary.
 `;
 }
 
@@ -190,12 +229,11 @@ export default async function handler(req: any, res: any) {
     }
 
     const body = await readJson(req);
-    const action = body.action as string;
+    const action = String(body.action || "");
 
     if (!action) return json(res, 400, { error: "Missing action" });
 
     // Guardrails to keep payload sizes sane in serverless.
-    // (You can bump these later if needed.)
     const paperText = clampText(String(body.paperText || ""), 120_000); // ~120k chars
     const question = clampText(String(body.question || ""), 5_000);
     const level = String(body.level || "intermediate");
@@ -207,9 +245,9 @@ export default async function handler(req: any, res: any) {
       const systemPrompt = buildSummarySystemPrompt();
       const userPrompt = `Here is the full text of the paper.\n\nPAPER TEXT START\n----------------\n${paperText}\n----------------\nPAPER TEXT END`;
 
+      // NOTE: Do NOT send response_format here; AI Gateway rejected it in your logs.
       const data = await gatewayFetch("/chat/completions", {
         model: DEFAULT_CHAT_MODEL,
-        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -217,12 +255,14 @@ export default async function handler(req: any, res: any) {
       });
 
       const content = data?.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Empty AI response");
-      return json(res, 200, JSON.parse(content));
+      const parsed = safeJsonParse(content);
+      return json(res, 200, parsed);
     }
 
     if (action === "tutor") {
-      if (!paperText || !question) return json(res, 400, { error: "Missing paperText or question" });
+      if (!paperText || !question) {
+        return json(res, 400, { error: "Missing paperText or question" });
+      }
 
       const systemPrompt = buildTutorSystemPrompt(level);
       const userPrompt = `PAPER TEXT START\n----------------\n${paperText}\n----------------\nPAPER TEXT END\n\nQUESTION:\n${question}`;
@@ -246,9 +286,9 @@ export default async function handler(req: any, res: any) {
       const systemPrompt = buildDiagramSystemPrompt();
       const userPrompt = `Build a concept diagram from this paper. Audience level: ${level}\n\nPAPER TEXT START\n----------------\n${paperText}\n----------------\nPAPER TEXT END`;
 
+      // NOTE: Do NOT send response_format here; AI Gateway rejected it in your logs.
       const data = await gatewayFetch("/chat/completions", {
         model: DEFAULT_CHAT_MODEL,
-        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -256,14 +296,13 @@ export default async function handler(req: any, res: any) {
       });
 
       const content = data?.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Empty AI response");
-      return json(res, 200, JSON.parse(content));
+      const parsed = safeJsonParse(content);
+      return json(res, 200, parsed);
     }
 
     if (action === "embed") {
       if (!textInput) return json(res, 400, { error: "Missing text" });
 
-      // OpenAI-compatible embeddings endpoint
       const data = await gatewayFetch("/embeddings", {
         model: DEFAULT_EMBED_MODEL,
         input: textInput.length > 8000 ? textInput.slice(0, 8000) : textInput,
