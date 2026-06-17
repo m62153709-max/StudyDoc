@@ -17,6 +17,6 @@ export type LibraryPaper = {
 
   fullText?: string;
 
-  // NEW: vector representing this paper for semantic search
   embedding?: number[];
+  notes?: string;
 };

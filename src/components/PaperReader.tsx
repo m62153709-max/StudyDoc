@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardCopy,
+  NotebookPen,
 } from "lucide-react";
 import type {
   AIPaperSummary,
@@ -33,9 +34,10 @@ type PaperWithAI = {
 interface PaperReaderProps {
   paper: PaperWithAI;
   onBack: () => void;
-  // Optional: related papers from the library (computed in App)
   relatedPapers?: LibraryPaper[];
   onOpenRelatedPaper?: (paper: LibraryPaper) => void;
+  initialNotes?: string;
+  onSaveNotes?: (notes: string) => void;
 }
 
 type ModuleTab =
@@ -44,7 +46,8 @@ type ModuleTab =
   | "diagram"
   | "tutor"
   | "quiz"
-  | "citations";
+  | "citations"
+  | "notes";
 type CitationStyle = "apa" | "mla" | "chicago" | "ieee" | "bibtex";
 
 function PaperReader({
@@ -52,6 +55,8 @@ function PaperReader({
   onBack,
   relatedPapers,
   onOpenRelatedPaper,
+  initialNotes = "",
+  onSaveNotes,
 }: PaperReaderProps) {
   const [level, setLevel] = useState<"beginner" | "intermediate" | "expert">(
     "intermediate"
@@ -82,6 +87,19 @@ function PaperReader({
   // Citations state
   const [citationStyle, setCitationStyle] = useState<CitationStyle>("apa");
   const [citationCopied, setCitationCopied] = useState(false);
+
+  // Notes state with auto-save
+  const [notes, setNotes] = useState(initialNotes);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const handleNotesChange = (val: string) => {
+    setNotes(val);
+    setNotesSaved(false);
+  };
+  const handleSaveNotes = () => {
+    onSaveNotes?.(notes);
+    setNotesSaved(true);
+    setTimeout(() => setNotesSaved(false), 2000);
+  };
 
   // Section expansion state (for structured summary)
   const [openSectionIndex, setOpenSectionIndex] = useState<number | null>(0);
@@ -209,6 +227,7 @@ function PaperReader({
     { id: "tutor", label: "Tutor Mode" },
     { id: "quiz", label: "Quiz" },
     { id: "citations", label: "Citations" },
+    { id: "notes", label: "My Notes" },
   ];
 
   // --- DETAILS TAB HELPERS ---
@@ -326,6 +345,8 @@ ${details.future_work}
                     <MessageCircle size={16} />
                   ) : mod.id === "quiz" ? (
                     <ListChecks size={16} />
+                  ) : mod.id === "notes" ? (
+                    <NotebookPen size={16} />
                   ) : (
                     <HelpCircle size={16} />
                   );
@@ -679,6 +700,34 @@ ${details.future_work}
                   No AI-generated quiz questions available for this paper yet.
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Notes */}
+          {activeTab === "notes" && (
+            <div className="bg-white border border-stone-200 rounded-xl p-6 md:p-8">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <NotebookPen size={18} className="text-stone-700" />
+                  <h2 className="font-serif text-xl font-bold">My Notes</h2>
+                </div>
+                <button
+                  onClick={handleSaveNotes}
+                  disabled={!onSaveNotes}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-40 transition-colors"
+                >
+                  {notesSaved ? "Saved ✓" : "Save"}
+                </button>
+              </div>
+              <p className="text-xs text-stone-500 mb-3">
+                Your private notes for this paper. Saved to your account.
+              </p>
+              <textarea
+                value={notes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                placeholder="Write your thoughts, key ideas, questions, or anything you want to remember about this paper..."
+                className="w-full min-h-[320px] text-sm rounded-lg border border-stone-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-stone-400 resize-y font-sans leading-relaxed"
+              />
             </div>
           )}
 

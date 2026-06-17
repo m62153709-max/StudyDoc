@@ -336,6 +336,47 @@ export default async function handler(req: any, res: any) {
       return json(res, 200, { embedding });
     }
 
+    if (action === "compare") {
+      const text1 = clampText(String(body.text1 || ""), 60_000);
+      const text2 = clampText(String(body.text2 || ""), 60_000);
+      if (!text1 || !text2) return json(res, 400, { error: "Missing text1 or text2" });
+
+      const systemPrompt = `You are an expert academic analyst. Compare two research papers and return ONLY valid JSON in this exact shape:
+
+{
+  "summary": string,
+  "research_question": { "paper1": string, "paper2": string, "verdict": string },
+  "methodology": { "paper1": string, "paper2": string, "verdict": string },
+  "findings": { "paper1": string, "paper2": string, "verdict": string },
+  "scope": { "paper1": string, "paper2": string, "verdict": string },
+  "agreements": string[],
+  "disagreements": string[],
+  "recommendation": string
+}
+
+Rules:
+- Every field must contain SPECIFIC information from the papers — no generic filler.
+- "verdict" fields should state which paper is stronger/broader/more rigorous on that dimension, or say they are comparable, with a reason.
+- "agreements": 3–5 specific points both papers agree on.
+- "disagreements": 2–4 specific points where the papers differ or contradict.
+- "recommendation": one paragraph on which paper to read first and why, depending on the reader's goal.
+- Return ONLY JSON, no backticks, no markdown.`;
+
+      const userPrompt = `PAPER 1:\n${text1}\n\nPAPER 2:\n${text2}`;
+
+      const data = await gatewayFetch("/chat/completions", {
+        model: DEFAULT_CHAT_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+
+      const content = data?.choices?.[0]?.message?.content;
+      const parsed = safeJsonParse(content);
+      return json(res, 200, parsed);
+    }
+
     return json(res, 400, { error: `Unknown action: ${action}` });
   } catch (err: any) {
     console.error("[StudyDoc] /api/ai error:", err?.message || err);

@@ -15,6 +15,7 @@ function toLibraryPaper(row: any): LibraryPaper {
     sourceId: row.source_id ?? undefined,
     fullText: row.full_text ?? undefined,
     embedding: row.embedding ?? undefined,
+    notes: row.notes ?? undefined,
     favorite: row.favorite ?? false,
     lastOpenedAt: row.last_opened_at ?? undefined,
     createdAt: row.created_at,
@@ -75,6 +76,7 @@ export function usePaperLibrary(userId: string | null) {
     if (patch.sourceId !== undefined) update.source_id = patch.sourceId;
     if (patch.fullText !== undefined) update.full_text = patch.fullText;
     if (patch.embedding !== undefined) update.embedding = patch.embedding;
+    if (patch.notes !== undefined) update.notes = patch.notes;
     if (patch.favorite !== undefined) update.favorite = patch.favorite;
     if (patch.lastOpenedAt !== undefined) update.last_opened_at = patch.lastOpenedAt;
 

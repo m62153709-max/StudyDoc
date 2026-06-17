@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import LandingPage from "./components/LandingPage";
 import PaperReader from "./components/PaperReader";
 import LibraryPage from "./components/LibraryPage";
+import CompareView from "./components/CompareView";
 import AuthPage from "./components/AuthPage";
 
 import { PAPERS } from "./data/papers";
@@ -32,7 +33,7 @@ type Paper = (typeof PAPERS)[0] & {
   fullText?: string; // used by Tutor Mode
 };
 
-type View = "home" | "reader" | "library";
+type View = "home" | "reader" | "library" | "compare";
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length || a.length === 0) return 0;
@@ -62,9 +63,8 @@ function App() {
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatusMsg, setUploadStatusMsg] = useState("Analyzing Document...");
-  const [currentLibraryPaperId, setCurrentLibraryPaperId] = useState<
-    string | null
-  >(null);
+  const [currentLibraryPaperId, setCurrentLibraryPaperId] = useState<string | null>(null);
+  const [comparePapers, setComparePapers] = useState<[LibraryPaper, LibraryPaper] | null>(null);
 
   // Premium / upload-limit state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -77,6 +77,7 @@ function App() {
   const {
     papers: libraryPapers,
     addPaper,
+    updatePaper,
     touchPaper,
     removePaper,
     toggleFavorite,
@@ -296,7 +297,19 @@ function App() {
     setCurrentView("home");
     setSelectedPaper(null);
     setCurrentLibraryPaperId(null);
+    setComparePapers(null);
     setUserMenuOpen(false);
+  };
+
+  const handleComparePapers = (p1: LibraryPaper, p2: LibraryPaper) => {
+    setComparePapers([p1, p2]);
+    setCurrentView("compare");
+    window.scrollTo(0, 0);
+  };
+
+  const handleSaveNotes = async (notes: string) => {
+    if (!currentLibraryPaperId) return;
+    await updatePaper(currentLibraryPaperId, { notes });
   };
 
   const goLibrary = () => {
@@ -736,6 +749,7 @@ function App() {
             onOpenPaper={handleOpenFromLibrary}
             onDeletePaper={removePaper}
             onToggleFavorite={toggleFavorite}
+            onComparePapers={handleComparePapers}
           />
         )}
 
@@ -745,6 +759,16 @@ function App() {
             onBack={goHome}
             relatedPapers={relatedPapers}
             onOpenRelatedPaper={handleOpenFromLibrary}
+            initialNotes={currentLibraryPaperId ? (libraryPapers.find(p => p.id === currentLibraryPaperId)?.notes ?? "") : ""}
+            onSaveNotes={currentLibraryPaperId ? handleSaveNotes : undefined}
+          />
+        )}
+
+        {currentView === "compare" && comparePapers && (
+          <CompareView
+            paper1={comparePapers[0]}
+            paper2={comparePapers[1]}
+            onBack={() => { setCurrentView("library"); setComparePapers(null); }}
           />
         )}
       </main>

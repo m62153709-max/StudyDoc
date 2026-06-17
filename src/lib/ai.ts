@@ -103,3 +103,18 @@ export async function embedTextForSearch(text: string): Promise<number[]> {
   const out = await callAI<{ embedding: number[] }>("embed", { text });
   return out.embedding;
 }
+
+export type PaperComparison = {
+  summary: string;
+  research_question: { paper1: string; paper2: string; verdict: string };
+  methodology: { paper1: string; paper2: string; verdict: string };
+  findings: { paper1: string; paper2: string; verdict: string };
+  scope: { paper1: string; paper2: string; verdict: string };
+  agreements: string[];
+  disagreements: string[];
+  recommendation: string;
+};
+
+export async function comparePapers(text1: string, text2: string): Promise<PaperComparison> {
+  return callAI<PaperComparison>("compare", { text1, text2 });
+}

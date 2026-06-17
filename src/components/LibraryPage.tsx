@@ -8,6 +8,7 @@ import {
   Star,
   Trash2,
   Sparkles,
+  GitCompare,
 } from "lucide-react";
 import type { LibraryPaper } from "../types/library";
 import { useSemanticSearch } from "../hooks/useSemanticSearch";
@@ -22,6 +23,7 @@ interface LibraryPageProps {
   onOpenPaper: (paper: LibraryPaper) => void;
   onDeletePaper: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onComparePapers: (paper1: LibraryPaper, paper2: LibraryPaper) => void;
 }
 
 function normalizeCategory(cat?: string) {
@@ -35,11 +37,22 @@ export default function LibraryPage({
   onOpenPaper,
   onDeletePaper,
   onToggleFavorite,
+  onComparePapers,
 }: LibraryPageProps) {
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelected, setCompareSelected] = useState<LibraryPaper[]>([]);
+
+  const toggleCompareSelect = (paper: LibraryPaper) => {
+    setCompareSelected((prev) => {
+      if (prev.find((p) => p.id === paper.id)) return prev.filter((p) => p.id !== paper.id);
+      if (prev.length >= 2) return prev;
+      return [...prev, paper];
+    });
+  };
 
   const { results: semanticResults, isSearching, error, search } =
     useSemanticSearch();
@@ -121,11 +134,34 @@ export default function LibraryPage({
           <ArrowLeft className="w-4 h-4" />
           Back to Home
         </button>
-        <h1 className="font-serif text-2xl font-bold tracking-tight">
-          My Library
-        </h1>
-        <div className="w-24" />
+        <h1 className="font-serif text-2xl font-bold tracking-tight">My Library</h1>
+        <button
+          onClick={() => { setCompareMode((m) => !m); setCompareSelected([]); }}
+          className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border transition-colors ${compareMode ? "bg-stone-900 text-white border-stone-900" : "border-stone-300 text-stone-600 hover:bg-stone-50"}`}
+        >
+          <GitCompare className="w-3.5 h-3.5" />
+          {compareMode ? "Cancel Compare" : "Compare Papers"}
+        </button>
       </div>
+
+      {/* Compare mode banner */}
+      {compareMode && (
+        <div className="mb-4 flex items-center justify-between rounded-xl bg-stone-900 text-white px-5 py-3 text-sm">
+          <span>
+            {compareSelected.length === 0 && "Select 2 papers to compare."}
+            {compareSelected.length === 1 && `"${compareSelected[0].title}" selected — pick one more.`}
+            {compareSelected.length === 2 && `Ready to compare "${compareSelected[0].title}" vs "${compareSelected[1].title}".`}
+          </span>
+          {compareSelected.length === 2 && (
+            <button
+              onClick={() => onComparePapers(compareSelected[0], compareSelected[1])}
+              className="ml-4 bg-white text-stone-900 text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-stone-100"
+            >
+              Compare →
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Controls */}
       <form
@@ -246,12 +282,21 @@ export default function LibraryPage({
           {listToShow.map((paper) => (
             <div
               key={paper.id}
-              className="rounded-xl border border-stone-200 bg-white px-4 py-3 flex flex-col gap-2 hover:shadow-sm transition"
+              className={`rounded-xl border bg-white px-4 py-3 flex flex-col gap-2 hover:shadow-sm transition ${compareMode && compareSelected.find((p) => p.id === paper.id) ? "border-stone-900 ring-2 ring-stone-900" : "border-stone-200"}`}
+              onClick={compareMode ? () => toggleCompareSelect(paper) : undefined}
             >
               <div className="flex items-start justify-between gap-2">
+                {compareMode && (
+                  <input
+                    type="checkbox"
+                    readOnly
+                    checked={!!compareSelected.find((p) => p.id === paper.id)}
+                    className="mt-1 accent-stone-900"
+                  />
+                )}
                 <div
                   className="flex-1 cursor-pointer"
-                  onClick={() => onOpenPaper(paper)}
+                  onClick={compareMode ? undefined : () => onOpenPaper(paper)}
                 >
                   <h3 className="font-medium text-sm mb-0.5 line-clamp-2">
                     {paper.title}
