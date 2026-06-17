@@ -61,14 +61,23 @@ function App() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // App state
-  const [currentView, setCurrentView] = useState<View>("home");
+  // App state — initialise from URL hash so blog posts have shareable URLs
+  const [currentView, setCurrentView] = useState<View>(() => {
+    const hash = window.location.hash.slice(1); // strip leading #
+    if (hash.startsWith("blog/")) return "blog-post";
+    if (hash === "blog") return "blog";
+    return "home";
+  });
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatusMsg, setUploadStatusMsg] = useState("Analyzing Document...");
   const [currentLibraryPaperId, setCurrentLibraryPaperId] = useState<string | null>(null);
   const [comparePapers, setComparePapers] = useState<[LibraryPaper, LibraryPaper] | null>(null);
-  const [selectedBlogSlug, setSelectedBlogSlug] = useState<string | null>(null);
+  const [selectedBlogSlug, setSelectedBlogSlug] = useState<string | null>(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash.startsWith("blog/")) return hash.slice(5); // strip "blog/"
+    return null;
+  });
 
   // Premium / upload-limit state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -89,6 +98,18 @@ function App() {
 
   // Only show library contents if user is logged in
   const visibleLibraryPapers = user ? libraryPapers : [];
+
+  // 🔗 Sync URL hash with current view
+  useEffect(() => {
+    if (currentView === "blog-post" && selectedBlogSlug) {
+      window.location.hash = `blog/${selectedBlogSlug}`;
+    } else if (currentView === "blog") {
+      window.location.hash = "blog";
+    } else {
+      // Clear hash for non-blog views so home/library/reader stay clean
+      history.replaceState(null, "", window.location.pathname);
+    }
+  }, [currentView, selectedBlogSlug]);
 
   // 📄 Dynamic page title
   useEffect(() => {
@@ -822,6 +843,7 @@ function App() {
             }}
           />
         )}
+
 
         {currentView === "blog-post" && selectedBlogSlug && (
           <BlogPost
