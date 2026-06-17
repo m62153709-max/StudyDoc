@@ -82,6 +82,9 @@ function App() {
   // Premium / upload-limit state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
+  const [showProSuccessModal, setShowProSuccessModal] = useState(
+    () => new URLSearchParams(window.location.search).get("payment") === "success"
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pricingRef = useRef<HTMLDivElement | null>(null);
@@ -98,6 +101,18 @@ function App() {
 
   // Only show library contents if user is logged in
   const visibleLibraryPapers = user ? libraryPapers : [];
+
+  // 🎉 On payment success: clean URL and refresh plan status
+  useEffect(() => {
+    if (!showProSuccessModal) return;
+    // Strip ?payment=success from URL so refresh doesn't re-show the modal
+    const clean = window.location.pathname + window.location.hash;
+    history.replaceState(null, "", clean);
+    // Refresh upload status so the banner flips to Pro immediately
+    if (user) {
+      getUploadStatus(user.id).then(setUploadStatus).catch(console.error);
+    }
+  }, [showProSuccessModal, user]);
 
   // 🔗 Sync URL hash with current view
   useEffect(() => {
@@ -899,6 +914,27 @@ function App() {
       {showAuthModal && !user && (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[100] flex items-center justify-center">
           <AuthPage onClose={() => setShowAuthModal(false)} />
+        </div>
+      )}
+
+      {/* 🎉 PRO SUCCESS MODAL – shown after returning from Stripe */}
+      {showProSuccessModal && (
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full px-8 py-8 text-center">
+            <div className="text-4xl mb-4">🎉</div>
+            <h3 className="font-serif text-2xl font-bold text-stone-900 mb-2">
+              You're on StudyDoc Pro
+            </h3>
+            <p className="text-sm text-stone-600 mb-6">
+              Your account has been upgraded. You now have higher daily upload limits, full Tutor Mode, semantic library search, and priority processing.
+            </p>
+            <button
+              onClick={() => setShowProSuccessModal(false)}
+              className="w-full bg-stone-900 text-white font-semibold text-sm px-6 py-3 rounded-lg hover:bg-stone-800 transition-colors"
+            >
+              Start using Pro →
+            </button>
+          </div>
         </div>
       )}
 
