@@ -19,9 +19,21 @@ export type ResearchDetails = {
   future_work: string;
 };
 
+export type PaperMetadata = {
+  year?: string;
+  journal?: string;
+  doi?: string;
+  volume?: string;
+  issue?: string;
+  pages?: string;
+  publisher?: string;
+  url?: string;
+};
+
 export type AIPaperSummary = {
   title: string;
   authors: string[];
+  metadata?: PaperMetadata;
   abstract: {
     beginner: string;
     intermediate: string;

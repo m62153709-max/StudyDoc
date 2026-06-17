@@ -87,30 +87,41 @@ function PaperReader({
   const [openSectionIndex, setOpenSectionIndex] = useState<number | null>(0);
 
   const citationTitle = ai?.title || paper.title;
+  const meta = ai?.metadata;
+  const citYear = meta?.year || "n.d.";
+  const citJournal = meta?.journal || "";
+  const citDoi = meta?.doi || "";
+  const citVolume = meta?.volume || "";
+  const citIssue = meta?.issue || "";
+  const citPages = meta?.pages || "";
+  const citPublisher = meta?.publisher || "";
 
   // --- CITATION GENERATION ---
   function getCitation(style: CitationStyle): string {
     const authors = authorLine;
     const title = citationTitle;
-    const year = "n.d."; // placeholder until we have real year metadata
+    const year = citYear;
+
+    const journalPart = citJournal
+      ? `${citJournal}${citVolume ? `, ${citVolume}` : ""}${citIssue ? `(${citIssue})` : ""}${citPages ? `, ${citPages}` : ""}.`
+      : "";
+    const doiPart = citDoi ? ` https://doi.org/${citDoi}` : "";
+    const publisherPart = citPublisher && !citJournal ? ` ${citPublisher}.` : "";
 
     switch (style) {
       case "apa":
-        return `${authors} (${year}). ${title}.`;
+        return `${authors} (${year}). ${title}.${journalPart ? " " + journalPart : ""}${publisherPart}${doiPart}`;
       case "mla":
-        return `${authors}. "${title}."`;
+        return `${authors}. "${title}." ${citJournal ? `*${citJournal}*` : ""}${citVolume ? `, vol. ${citVolume}` : ""}${citIssue ? `, no. ${citIssue}` : ""}, ${year}${citPages ? `, pp. ${citPages}` : ""}.${doiPart}`;
       case "chicago":
-        return `${authors}. "${title}."`;
+        return `${authors}. "${title}."${citJournal ? ` *${citJournal}*` : ""}${citVolume ? ` ${citVolume}` : ""}${citIssue ? `, no. ${citIssue}` : ""} (${year})${citPages ? `: ${citPages}` : ""}.${doiPart}`;
       case "ieee":
-        return `${authors}, "${title}," ${year}.`;
+        return `${authors}, "${title}," ${citJournal ? `*${citJournal}*` : ""}${citVolume ? `, vol. ${citVolume}` : ""}${citIssue ? `, no. ${citIssue}` : ""}${citPages ? `, pp. ${citPages}` : ""}, ${year}.${doiPart}`;
       case "bibtex":
-        return `@article{forcite_${title
-          .toLowerCase()
-          .slice(0, 20)
-          .replace(/[^a-z0-9]+/g, "_")},
-  title = {${title}},
-  author = {${authors}},
-  year = {${year}},
+        return `@article{${title.toLowerCase().slice(0, 20).replace(/[^a-z0-9]+/g, "_")}${year},
+  title   = {${title}},
+  author  = {${authors}},
+  year    = {${year}},${citJournal ? `\n  journal = {${citJournal}},` : ""}${citVolume ? `\n  volume  = {${citVolume}},` : ""}${citIssue ? `\n  number  = {${citIssue}},` : ""}${citPages ? `\n  pages   = {${citPages}},` : ""}${citDoi ? `\n  doi     = {${citDoi}},` : ""}${citPublisher ? `\n  publisher = {${citPublisher}},` : ""}
 }`;
       default:
         return `${authors} (${year}). ${title}.`;
@@ -726,11 +737,18 @@ ${details.future_work}
                   {citationCopied ? "Copied!" : "Copy citation"}
                 </button>
 
-                <p className="text-[11px] text-stone-400">
-                  Future idea: pull structured metadata (year, journal, DOI)
-                  from the PDF or external APIs and generate fully correct
-                  references, plus export to .bib / .ris.
-                </p>
+                {(citJournal || citDoi || citYear !== "n.d.") && (
+                  <div className="text-[11px] text-stone-500 space-y-0.5">
+                    {citJournal && <p><span className="font-medium">Journal:</span> {citJournal}</p>}
+                    {citYear !== "n.d." && <p><span className="font-medium">Year:</span> {citYear}</p>}
+                    {citDoi && <p><span className="font-medium">DOI:</span> {citDoi}</p>}
+                  </div>
+                )}
+                {!citJournal && !citDoi && citYear === "n.d." && (
+                  <p className="text-[11px] text-stone-400">
+                    No publication metadata found in this PDF. Fill in manually if needed.
+                  </p>
+                )}
               </div>
             </div>
           )}
