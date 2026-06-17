@@ -162,7 +162,7 @@ export const BLOG_POSTS: BlogPost[] = [
 
 <h2>BibTeX</h2>
 <p><strong>Used in:</strong> Computer science, mathematics, physics — specifically when writing in LaTeX</p>
-<p>BibTeX is not a citation style per se — it's a reference management format used with the LaTeX typesetting system. You write your references in a `.bib` file, and LaTeX formats them automatically in whatever style you specify (APA, IEEE, etc.).</p>
+<p>BibTeX is not a citation style per se — it's a reference management format used with the LaTeX typesetting system. You write your references in a <code>.bib</code> file, and LaTeX formats them automatically in whatever style you specify (APA, IEEE, etc.).</p>
 <p><strong>Example BibTeX entry:</strong></p>
 <pre>@article{smith2022,
   title   = {Deep learning for image classification},
