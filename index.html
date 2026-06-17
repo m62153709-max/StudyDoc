@@ -2,19 +2,146 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>StudyDoc</title>
+    <!-- Primary Meta -->
+    <title>StudyDoc — AI-Powered Academic Paper Reader for Students & Researchers</title>
+    <meta name="description" content="Upload any academic PDF and StudyDoc instantly generates layered explanations, concept diagrams, quizzes, tutor Q&A, and formatted citations. Free for students." />
+    <meta name="keywords" content="academic paper reader, AI research tool, PDF summarizer, study tool for students, research paper explainer, AI tutor, academic PDF analyzer" />
+    <link rel="canonical" href="https://studydoc.app/" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="StudyDoc" />
 
-    <!-- Optional: you can add more meta tags later -->
-    <!--
-    <meta
-      name="description"
-      content="StudyDoc — your AI-powered research companion for understanding academic papers."
-    />
-    -->
+    <!-- Open Graph (Facebook, LinkedIn, Slack previews) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://studydoc.app/" />
+    <meta property="og:title" content="StudyDoc — AI-Powered Academic Paper Reader" />
+    <meta property="og:description" content="Upload any academic PDF. StudyDoc rebuilds it into layered explanations, concept diagrams, tutor Q&A, quizzes, and citations — in seconds." />
+    <meta property="og:image" content="https://studydoc.app/android-chrome-512x512.png" />
+    <meta property="og:site_name" content="StudyDoc" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://studydoc.app/" />
+    <meta name="twitter:title" content="StudyDoc — AI-Powered Academic Paper Reader" />
+    <meta name="twitter:description" content="Upload any academic PDF. StudyDoc rebuilds it into layered explanations, concept diagrams, tutor Q&A, quizzes, and citations — in seconds." />
+    <meta name="twitter:image" content="https://studydoc.app/android-chrome-512x512.png" />
+
+    <!-- Favicons -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Schema Markup -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "StudyDoc",
+          "url": "https://studydoc.app",
+          "applicationCategory": "EducationApplication",
+          "operatingSystem": "Web",
+          "description": "StudyDoc is an AI-powered academic paper reader that transforms complex research PDFs into layered explanations, concept diagrams, quizzes, tutor-style Q&A, and formatted citations.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Free Plan",
+              "price": "0",
+              "priceCurrency": "USD",
+              "description": "3 AI-powered PDF uploads per day, saved library, beginner and intermediate explanations, quiz mode."
+            },
+            {
+              "@type": "Offer",
+              "name": "StudyDoc Pro",
+              "price": "8",
+              "priceCurrency": "USD",
+              "description": "Unlimited uploads, full Tutor Mode, semantic search across your library, priority processing."
+            }
+          ],
+          "featureList": [
+            "AI-generated layered explanations (Beginner, Intermediate, Expert)",
+            "Section-by-section paper summaries",
+            "Concept diagram generation",
+            "Tutor Mode Q&A grounded in the paper",
+            "Auto-generated quizzes for self-testing",
+            "APA, MLA, Chicago, IEEE, and BibTeX citation generation",
+            "Semantic search across your paper library",
+            "OCR support for scanned PDFs",
+            "Side-by-side paper comparison",
+            "Personal notes per paper synced to your account"
+          ],
+          "audience": {
+            "@type": "Audience",
+            "audienceType": "Students, Graduate Researchers, Academic Professionals"
+          }
+        },
+        {
+          "@type": "Organization",
+          "name": "StudyDoc",
+          "url": "https://studydoc.app",
+          "logo": "https://studydoc.app/android-chrome-512x512.png"
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What types of PDFs does StudyDoc support?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "StudyDoc supports any academic PDF — journal articles, preprints, lecture notes, and textbook chapters. It also supports scanned PDFs using built-in OCR technology."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does StudyDoc explain academic papers?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "StudyDoc uses AI to generate three levels of explanation for every paper: Beginner (plain language for non-experts), Intermediate (for undergraduates in the field), and Expert (for graduate-level readers). It also generates section-by-section summaries, key takeaways, and research details."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is StudyDoc free?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. StudyDoc offers a free plan with 3 AI-powered PDF uploads per day. The Pro plan at $8/month offers higher upload limits, full Tutor Mode, and semantic search across your library."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can StudyDoc generate citations?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. StudyDoc automatically extracts publication metadata (title, authors, year, journal, DOI) and generates properly formatted citations in APA, MLA, Chicago, IEEE, and BibTeX styles."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What is Tutor Mode?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Tutor Mode lets you ask any question about a paper and receive an answer grounded exclusively in that paper's content, adapted to your chosen expertise level (Beginner, Intermediate, or Expert)."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I compare two research papers?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. StudyDoc's Compare feature lets you select any two papers from your library and generates a structured side-by-side analysis covering research questions, methodology, findings, scope, agreements, disagreements, and a reading recommendation."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

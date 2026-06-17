@@ -1,0 +1,39 @@
+# StudyDoc
+
+> StudyDoc is an AI-powered academic paper reader that transforms complex research PDFs into layered explanations, concept diagrams, quizzes, tutor-style Q&A, and formatted citations.
+
+## What StudyDoc Does
+
+StudyDoc helps students and researchers understand academic papers faster. Upload any PDF — including scanned documents — and StudyDoc generates:
+
+- **Layered explanations** at Beginner, Intermediate, and Expert levels
+- **Section-by-section summaries** covering Introduction, Methods, Results, Discussion, and Conclusion
+- **Research details** — research question, methodology, data, key results, limitations, and future work
+- **Concept diagrams** showing how the paper's ideas connect
+- **Tutor Mode** — ask any question about the paper and get an answer grounded in the paper's content
+- **Quizzes** for self-testing comprehension
+- **Citations** in APA, MLA, Chicago, IEEE, and BibTeX formats with auto-extracted metadata
+- **Paper comparison** — side-by-side AI analysis of two papers
+- **Personal notes** per paper, synced to your account
+- **Semantic search** across your entire saved library
+
+## Who It's For
+
+- Undergraduate and graduate students reading assigned papers
+- Researchers doing literature reviews
+- Pre-med, STEM, social science, and humanities students
+- Anyone who needs to understand academic content quickly
+
+## Pricing
+
+- **Free**: 3 AI-powered PDF uploads per day, saved library, explanations, quizzes
+- **Pro**: $8/month — higher upload limits, full Tutor Mode, semantic library search, priority processing
+
+## Key URLs
+
+- Homepage: https://studydoc.app/
+- Pricing: https://studydoc.app/#pricing
+
+## Contact
+
+For questions or partnerships, visit https://studydoc.app/
