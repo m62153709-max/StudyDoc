@@ -8,6 +8,8 @@ import PaperReader from "./components/PaperReader";
 import LibraryPage from "./components/LibraryPage";
 import CompareView from "./components/CompareView";
 import AuthPage from "./components/AuthPage";
+import BlogList from "./components/BlogList";
+import BlogPost from "./components/BlogPost";
 
 import { PAPERS } from "./data/papers";
 import { extractTextFromPdf } from "./lib/pdf";
@@ -33,7 +35,7 @@ type Paper = (typeof PAPERS)[0] & {
   fullText?: string; // used by Tutor Mode
 };
 
-type View = "home" | "reader" | "library" | "compare";
+type View = "home" | "reader" | "library" | "compare" | "blog" | "blog-post";
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length || a.length === 0) return 0;
@@ -65,6 +67,7 @@ function App() {
   const [uploadStatusMsg, setUploadStatusMsg] = useState("Analyzing Document...");
   const [currentLibraryPaperId, setCurrentLibraryPaperId] = useState<string | null>(null);
   const [comparePapers, setComparePapers] = useState<[LibraryPaper, LibraryPaper] | null>(null);
+  const [selectedBlogSlug, setSelectedBlogSlug] = useState<string | null>(null);
 
   // Premium / upload-limit state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -318,6 +321,12 @@ function App() {
     setUserMenuOpen(false);
   };
 
+  const goBlog = () => {
+    setCurrentView("blog");
+    setUserMenuOpen(false);
+    window.scrollTo(0, 0);
+  };
+
   // Compute related papers for current library paper (if any)
   let relatedPapers: LibraryPaper[] = [];
   if (currentLibraryPaperId) {
@@ -390,6 +399,14 @@ function App() {
               onClick={goLibrary}
             >
               Library
+            </button>
+            <button
+              className={`hover:text-stone-900 transition-colors ${
+                currentView === "blog" || currentView === "blog-post" ? "text-stone-900" : ""
+              }`}
+              onClick={goBlog}
+            >
+              Blog
             </button>
             <button
               type="button"
@@ -771,6 +788,24 @@ function App() {
             onBack={() => { setCurrentView("library"); setComparePapers(null); }}
           />
         )}
+
+        {currentView === "blog" && (
+          <BlogList
+            onSelectPost={(slug) => {
+              setSelectedBlogSlug(slug);
+              setCurrentView("blog-post");
+              window.scrollTo(0, 0);
+            }}
+          />
+        )}
+
+        {currentView === "blog-post" && selectedBlogSlug && (
+          <BlogPost
+            slug={selectedBlogSlug}
+            onBack={goBlog}
+            onUpload={handleUpload}
+          />
+        )}
       </main>
 
       {/* FOOTER */}
@@ -789,9 +824,10 @@ function App() {
               Product
             </h4>
             <ul className="space-y-2 text-stone-500 text-sm">
-              <li>Library</li>
-              <li>Upload</li>
-              <li>Pricing</li>
+              <li><button onClick={goLibrary} className="hover:text-stone-800">Library</button></li>
+              <li><button onClick={handleUpload} className="hover:text-stone-800">Upload</button></li>
+              <li><button onClick={scrollToPricing} className="hover:text-stone-800">Pricing</button></li>
+              <li><button onClick={goBlog} className="hover:text-stone-800">Blog</button></li>
             </ul>
           </div>
           <div>
