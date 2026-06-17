@@ -2,37 +2,21 @@
 import { useState } from "react";
 import type { LibraryPaper } from "../types/library";
 import { embedTextForSearch } from "../lib/ai";
+import { supabase } from "../lib/supabaseClient";
 
 export type SemanticResult = {
   paper: LibraryPaper;
   score: number;
 };
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length || a.length === 0) return 0;
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
-  const denom = Math.sqrt(na) * Math.sqrt(nb);
-  return denom === 0 ? 0 : dot / denom;
-}
-
-export function useSemanticSearch(papers: LibraryPaper[]) {
+export function useSemanticSearch() {
   const [results, setResults] = useState<SemanticResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const search = async (query: string) => {
+  const search = async (query: string, userId: string) => {
     const q = query.trim();
-    if (!q) {
-      setResults([]);
-      return;
-    }
+    if (!q || !userId) { setResults([]); return; }
 
     try {
       setIsSearching(true);
@@ -40,13 +24,32 @@ export function useSemanticSearch(papers: LibraryPaper[]) {
 
       const queryEmbedding = await embedTextForSearch(q);
 
-      const scored: SemanticResult[] = papers
-        .filter((p) => p.embedding && p.embedding.length > 0)
-        .map((paper) => ({
-          paper,
-          score: cosineSimilarity(queryEmbedding, paper.embedding!),
-        }))
-        .sort((a, b) => b.score - a.score);
+      const { data, error: rpcError } = await supabase.rpc("match_papers", {
+        query_embedding: queryEmbedding,
+        match_user_id: userId,
+        match_threshold: 0.3,
+        match_count: 10,
+      });
+
+      if (rpcError) throw rpcError;
+
+      const scored: SemanticResult[] = (data ?? []).map((row: any) => ({
+        score: row.similarity,
+        paper: {
+          id: row.id,
+          title: row.title,
+          authors: row.authors ?? undefined,
+          category: row.category ?? undefined,
+          readTime: row.read_time ?? undefined,
+          aiSummary: row.ai_summary ?? undefined,
+          sourceType: row.source_type,
+          sourceId: row.source_id ?? undefined,
+          fullText: row.full_text ?? undefined,
+          favorite: row.favorite ?? false,
+          lastOpenedAt: row.last_opened_at ?? undefined,
+          createdAt: row.created_at,
+        } as LibraryPaper,
+      }));
 
       setResults(scored);
     } catch (err) {
@@ -57,5 +60,7 @@ export function useSemanticSearch(papers: LibraryPaper[]) {
     }
   };
 
-  return { results, isSearching, error, search };
+  const clear = () => setResults([]);
+
+  return { results, isSearching, error, search, clear };
 }

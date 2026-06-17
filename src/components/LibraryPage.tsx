@@ -17,6 +17,7 @@ type SearchMode = "keyword" | "semantic";
 
 interface LibraryPageProps {
   papers: LibraryPaper[];
+  userId: string | null;
   onBack: () => void;
   onOpenPaper: (paper: LibraryPaper) => void;
   onDeletePaper: (id: string) => void;
@@ -29,6 +30,7 @@ function normalizeCategory(cat?: string) {
 
 export default function LibraryPage({
   papers,
+  userId,
   onBack,
   onOpenPaper,
   onDeletePaper,
@@ -40,7 +42,7 @@ export default function LibraryPage({
   const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
 
   const { results: semanticResults, isSearching, error, search } =
-    useSemanticSearch(papers);
+    useSemanticSearch();
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -103,8 +105,8 @@ export default function LibraryPage({
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchMode === "semantic") {
-      await search(searchQuery);
+    if (searchMode === "semantic" && userId) {
+      await search(searchQuery, userId);
     }
   };
 

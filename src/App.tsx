@@ -80,7 +80,7 @@ function App() {
     touchPaper,
     removePaper,
     toggleFavorite,
-  } = usePaperLibrary();
+  } = usePaperLibrary(user?.id ?? null);
 
   // Only show library contents if user is logged in
   const visibleLibraryPapers = user ? libraryPapers : [];
@@ -731,6 +731,7 @@ function App() {
         {currentView === "library" && (
           <LibraryPage
             papers={libraryPapers}
+            userId={user?.id ?? null}
             onBack={goHome}
             onOpenPaper={handleOpenFromLibrary}
             onDeletePaper={removePaper}
