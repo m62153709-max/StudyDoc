@@ -12,6 +12,7 @@ import BlogList from "./components/BlogList";
 import BlogPost from "./components/BlogPost";
 
 import { PAPERS } from "./data/papers";
+import { BLOG_POSTS } from "./data/blog";
 import { extractTextFromPdf } from "./lib/pdf";
 import {
   summarizePaperWithAI,
@@ -89,6 +90,24 @@ function App() {
   // Only show library contents if user is logged in
   const visibleLibraryPapers = user ? libraryPapers : [];
 
+  // 📄 Dynamic page title
+  useEffect(() => {
+    if (currentView === "blog-post" && selectedBlogSlug) {
+      const post = BLOG_POSTS.find((p) => p.slug === selectedBlogSlug);
+      document.title = post
+        ? `${post.title} | StudyDoc`
+        : "Blog | StudyDoc";
+    } else if (currentView === "blog") {
+      document.title = "Blog — Study Guides & Research Tips | StudyDoc";
+    } else if (currentView === "library") {
+      document.title = "My Library | StudyDoc";
+    } else if (currentView === "reader" && selectedPaper) {
+      document.title = `${selectedPaper.title} | StudyDoc`;
+    } else {
+      document.title = "StudyDoc — AI-Powered Academic Paper Reader";
+    }
+  }, [currentView, selectedBlogSlug, selectedPaper]);
+
   // 🔐 On mount, fetch current session & listen for changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -132,16 +151,21 @@ function App() {
   };
 
   // 🔺 Upgrade handler – sends user to Stripe payment link
+  // Appends ?client_reference_id=<userId> so the webhook knows who to upgrade.
   const handleUpgradeToPro = () => {
-    const checkoutUrl = import.meta.env.VITE_STRIPE_PRO_LINK;
+    const baseUrl = import.meta.env.VITE_STRIPE_PRO_LINK;
 
-    if (!checkoutUrl) {
+    if (!baseUrl) {
       console.error("Missing VITE_STRIPE_PRO_LINK env var");
       alert(
         "Upgrade link is not configured yet. Ask the developer to set VITE_STRIPE_PRO_LINK."
       );
       return;
     }
+
+    const checkoutUrl = user?.id
+      ? `${baseUrl}?client_reference_id=${user.id}`
+      : baseUrl;
 
     window.open(checkoutUrl, "_blank", "noopener,noreferrer");
   };
