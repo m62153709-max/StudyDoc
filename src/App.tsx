@@ -61,6 +61,7 @@ function App() {
   const [currentView, setCurrentView] = useState<View>("home");
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatusMsg, setUploadStatusMsg] = useState("Analyzing Document...");
   const [currentLibraryPaperId, setCurrentLibraryPaperId] = useState<
     string | null
   >(null);
@@ -204,10 +205,12 @@ function App() {
       setIsUploading(true);
 
       // 1) Extract text from the PDF
-      const text = await extractTextFromPdf(file);
+      setUploadStatusMsg("Extracting text...");
+      const text = await extractTextFromPdf(file, (msg) => setUploadStatusMsg(msg));
       console.log("Extracted text length:", text.length);
 
       // 2) Send to OpenAI for structured summary
+      setUploadStatusMsg("Generating AI summary...");
       const aiSummary = await summarizePaperWithAI(text);
       console.log("AI summary:", aiSummary);
 
@@ -443,12 +446,9 @@ function App() {
           <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full text-center">
             <div className="w-16 h-16 border-4 border-stone-200 border-t-stone-800 rounded-full animate-spin mx-auto mb-6" />
             <h3 className="font-serif text-xl font-bold mb-2">
-              Analyzing Document...
+              {uploadStatusMsg.startsWith("OCR") ? "Reading Scanned PDF..." : "Analyzing Document..."}
             </h3>
-            <p className="text-stone-500">
-              Generating explanations, diagrams, quizzes, details, and search
-              index.
-            </p>
+            <p className="text-stone-500 text-sm">{uploadStatusMsg}</p>
           </div>
         </div>
       )}
