@@ -10,6 +10,9 @@ import CompareView from "./components/CompareView";
 import AuthPage from "./components/AuthPage";
 import BlogList from "./components/BlogList";
 import BlogPost from "./components/BlogPost";
+import OnboardingChecklist, { useChecklistDismissed } from "./components/OnboardingChecklist";
+import WhatNextPrompt from "./components/WhatNextPrompt";
+import type { ChecklistKey } from "./components/OnboardingChecklist";
 
 import { PAPERS } from "./data/papers";
 import { BLOG_POSTS } from "./data/blog";
@@ -86,6 +89,27 @@ function App() {
     () => new URLSearchParams(window.location.search).get("payment") === "success"
   );
 
+  // Onboarding checklist
+  const { dismissed: checklistDismissed, dismiss: dismissChecklist } = useChecklistDismissed();
+  const CHECKLIST_KEY = user ? `studydoc_checklist_${user.id}` : null;
+  const [checklist, setChecklist] = useState<Record<ChecklistKey, boolean>>(() => {
+    try {
+      const key = `studydoc_checklist_${localStorage.getItem("studydoc_last_user") ?? "anon"}`;
+      return JSON.parse(localStorage.getItem(key) || "{}");
+    } catch { return {}; }
+  });
+  const markChecklist = (key: ChecklistKey) => {
+    setChecklist((prev) => {
+      const next = { ...prev, [key]: true };
+      if (CHECKLIST_KEY) localStorage.setItem(CHECKLIST_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // What-next prompt after reading
+  const [showWhatNext, setShowWhatNext] = useState(false);
+  const [readerTabOverride, setReaderTabOverride] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pricingRef = useRef<HTMLDivElement | null>(null);
 
@@ -154,9 +178,19 @@ function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
       setAuthLoading(false);
       setUserMenuOpen(false);
+      if (u) {
+        localStorage.setItem("studydoc_last_user", u.id);
+        // Fire welcome email (server deduplicates via welcome_email_sent flag)
+        fetch("/api/send-welcome-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: u.id, email: u.email }),
+        }).catch(console.error);
+      }
     });
 
     return () => {
@@ -321,6 +355,7 @@ function App() {
         }
       }
 
+      markChecklist("uploaded");
       setCurrentLibraryPaperId(null);
       handleSelectPaper(uploadedPaper);
     } catch (err) {
@@ -356,7 +391,8 @@ function App() {
     handleSelectPaper(paperFromLibrary);
   };
 
-  const goHome = () => {
+  const goHome = (fromReader = false) => {
+    if (fromReader) setShowWhatNext(true);
     setCurrentView("home");
     setSelectedPaper(null);
     setCurrentLibraryPaperId(null);
@@ -833,11 +869,16 @@ function App() {
         {currentView === "reader" && selectedPaper && (
           <PaperReader
             paper={selectedPaper}
-            onBack={goHome}
+            onBack={() => goHome(true)}
             relatedPapers={relatedPapers}
             onOpenRelatedPaper={handleOpenFromLibrary}
             initialNotes={currentLibraryPaperId ? (libraryPapers.find(p => p.id === currentLibraryPaperId)?.notes ?? "") : ""}
             onSaveNotes={currentLibraryPaperId ? handleSaveNotes : undefined}
+            onTabChange={(tab) => {
+              if (tab === "tutor") markChecklist("tutor");
+              if (tab === "quiz") markChecklist("quiz");
+              if (tab === "citations") markChecklist("citation");
+            }}
           />
         )}
 
@@ -915,6 +956,28 @@ function App() {
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[100] flex items-center justify-center">
           <AuthPage onClose={() => setShowAuthModal(false)} />
         </div>
+      )}
+
+      {/* 📋 ONBOARDING CHECKLIST */}
+      {user && !checklistDismissed && currentView !== "reader" && (
+        <OnboardingChecklist
+          completed={checklist}
+          onDismiss={dismissChecklist}
+          onGoTutor={() => { setCurrentView("reader"); }}
+          onGoQuiz={() => { setCurrentView("reader"); }}
+          onGoCitation={() => { setCurrentView("reader"); }}
+          onGoCompare={goLibrary}
+        />
+      )}
+
+      {/* 💡 WHAT NEXT PROMPT */}
+      {showWhatNext && currentView === "home" && (
+        <WhatNextPrompt
+          onTutor={() => { setShowWhatNext(false); if (selectedPaper) { setCurrentView("reader"); setReaderTabOverride("tutor"); } }}
+          onQuiz={() => { setShowWhatNext(false); if (selectedPaper) { setCurrentView("reader"); setReaderTabOverride("quiz"); } }}
+          onCompare={() => { setShowWhatNext(false); goLibrary(); }}
+          onDismiss={() => setShowWhatNext(false)}
+        />
       )}
 
       {/* 🎉 PRO SUCCESS MODAL – shown after returning from Stripe */}

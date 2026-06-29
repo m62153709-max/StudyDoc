@@ -1,5 +1,5 @@
 // src/components/PaperReader.tsx
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -11,6 +11,8 @@ import {
   ChevronRight,
   ClipboardCopy,
   NotebookPen,
+  Quote,
+  Trash2,
 } from "lucide-react";
 import type {
   AIPaperSummary,
@@ -31,6 +33,13 @@ type PaperWithAI = {
   fullText?: string; // used by Tutor Mode & Diagram
 };
 
+export type SavedQuote = {
+  id: string;
+  text: string;
+  citation: string;
+  savedAt: string;
+};
+
 interface PaperReaderProps {
   paper: PaperWithAI;
   onBack: () => void;
@@ -38,6 +47,7 @@ interface PaperReaderProps {
   onOpenRelatedPaper?: (paper: LibraryPaper) => void;
   initialNotes?: string;
   onSaveNotes?: (notes: string) => void;
+  onTabChange?: (tab: string) => void;
 }
 
 type ModuleTab =
@@ -47,7 +57,8 @@ type ModuleTab =
   | "tutor"
   | "quiz"
   | "citations"
-  | "notes";
+  | "notes"
+  | "quotes";
 type CitationStyle = "apa" | "mla" | "chicago" | "ieee" | "bibtex";
 
 function PaperReader({
@@ -57,11 +68,13 @@ function PaperReader({
   onOpenRelatedPaper,
   initialNotes = "",
   onSaveNotes,
+  onTabChange,
 }: PaperReaderProps) {
   const [level, setLevel] = useState<"beginner" | "intermediate" | "expert">(
     "intermediate"
   );
   const [activeTab, setActiveTab] = useState<ModuleTab>("explanation");
+  const goToTab = (tab: ModuleTab) => { setActiveTab(tab); onTabChange?.(tab); };
 
   const ai = paper.aiSummary;
 
@@ -100,6 +113,53 @@ function PaperReader({
     setNotesSaved(true);
     setTimeout(() => setNotesSaved(false), 2000);
   };
+
+  // Saved quotes
+  const QUOTES_KEY = `studydoc_quotes_${paper.title.slice(0, 30)}`;
+  const [savedQuotes, setSavedQuotes] = useState<SavedQuote[]>(() => {
+    try { return JSON.parse(localStorage.getItem(QUOTES_KEY) || "[]"); } catch { return []; }
+  });
+  const [quoteTooltip, setQuoteTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const saveQuote = useCallback((text: string) => {
+    const citation = getCitation("apa");
+    const quote: SavedQuote = {
+      id: Date.now().toString(),
+      text: text.trim(),
+      citation,
+      savedAt: new Date().toISOString(),
+    };
+    setSavedQuotes((prev) => {
+      const next = [quote, ...prev];
+      localStorage.setItem(QUOTES_KEY, JSON.stringify(next));
+      return next;
+    });
+    setQuoteTooltip(null);
+    window.getSelection()?.removeAllRanges();
+  }, [QUOTES_KEY]); // eslint-disable-line
+
+  const deleteQuote = (id: string) => {
+    setSavedQuotes((prev) => {
+      const next = prev.filter((q) => q.id !== id);
+      localStorage.setItem(QUOTES_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handleMouseUp = (e: MouseEvent) => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim() ?? "";
+      if (text.length < 20 || !contentRef.current?.contains(e.target as Node)) {
+        setQuoteTooltip(null);
+        return;
+      }
+      setQuoteTooltip({ x: e.clientX, y: e.clientY, text });
+    };
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => document.removeEventListener("mouseup", handleMouseUp);
+  }, []);
 
   // Section expansion state (for structured summary)
   const [openSectionIndex, setOpenSectionIndex] = useState<number | null>(0);
@@ -228,6 +288,7 @@ function PaperReader({
     { id: "quiz", label: "Quiz" },
     { id: "citations", label: "Citations" },
     { id: "notes", label: "My Notes" },
+    { id: "quotes", label: `Saved Quotes${savedQuotes.length > 0 ? ` (${savedQuotes.length})` : ""}` },
   ];
 
   // --- DETAILS TAB HELPERS ---
@@ -347,6 +408,8 @@ ${details.future_work}
                     <ListChecks size={16} />
                   ) : mod.id === "notes" ? (
                     <NotebookPen size={16} />
+                  ) : mod.id === "quotes" ? (
+                    <Quote size={16} />
                   ) : (
                     <HelpCircle size={16} />
                   );
@@ -354,7 +417,7 @@ ${details.future_work}
                 return (
                   <button
                     key={mod.id}
-                    onClick={() => setActiveTab(mod.id)}
+                    onClick={() => goToTab(mod.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left ${
                       isActive
                         ? "bg-stone-900 text-white"
@@ -425,7 +488,7 @@ ${details.future_work}
         <section className="space-y-8">
           {/* Explanation */}
           {activeTab === "explanation" && (
-            <div className="bg-white border border-stone-200 rounded-xl p-6 md:p-8 space-y-6">
+            <div ref={contentRef} className="bg-white border border-stone-200 rounded-xl p-6 md:p-8 space-y-6">
               {/* Overall abstract / overview */}
               <div>
                 <h2 className="font-serif text-xl font-bold mb-2">
@@ -731,6 +794,51 @@ ${details.future_work}
             </div>
           )}
 
+          {/* Saved Quotes */}
+          {activeTab === "quotes" && (
+            <div className="bg-white border border-stone-200 rounded-xl p-6 md:p-8">
+              <div className="flex items-center gap-2 mb-1">
+                <Quote size={18} className="text-stone-700" />
+                <h2 className="font-serif text-xl font-bold">Saved Quotes</h2>
+              </div>
+              <p className="text-xs text-stone-500 mb-5">
+                Highlight any text in the Explanation tab to save a quote with its citation auto-attached.
+              </p>
+              {savedQuotes.length === 0 ? (
+                <div className="text-center py-12 text-stone-400">
+                  <Quote size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No quotes saved yet.</p>
+                  <p className="text-xs mt-1">Go to Explanation and highlight any text.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {savedQuotes.map((q) => (
+                    <div key={q.id} className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <blockquote className="text-sm text-stone-800 leading-relaxed italic flex-1">
+                          "{q.text}"
+                        </blockquote>
+                        <button
+                          onClick={() => deleteQuote(q.id)}
+                          className="text-stone-300 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <p className="mt-2 text-[11px] text-stone-500 leading-relaxed">{q.citation}</p>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(`"${q.text}" ${q.citation}`)}
+                        className="mt-2 text-[11px] text-stone-400 hover:text-stone-700 transition-colors"
+                      >
+                        Copy quote + citation
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Citations */}
           {activeTab === "citations" && (
             <div className="bg-white border border-stone-200 rounded-xl p-6 md:p-8">
@@ -803,6 +911,21 @@ ${details.future_work}
           )}
         </section>
       </main>
+
+      {/* Quote save tooltip */}
+      {quoteTooltip && (
+        <div
+          className="fixed z-50 animate-fade-in"
+          style={{ top: quoteTooltip.y - 48, left: quoteTooltip.x - 60 }}
+        >
+          <button
+            onMouseDown={(e) => { e.preventDefault(); saveQuote(quoteTooltip.text); }}
+            className="flex items-center gap-1.5 bg-stone-900 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg hover:bg-stone-700 transition-colors whitespace-nowrap"
+          >
+            <Quote size={13} /> Save quote
+          </button>
+        </div>
+      )}
     </div>
   );
 }
